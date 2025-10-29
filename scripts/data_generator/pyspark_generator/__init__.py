@@ -1,5 +1,7 @@
 from deltalake import DeltaTable, write_deltalake
-from pyspark.sql import SparkSession
+
+from databricks.connect import DatabricksSession
+
 from delta import *
 from pyspark.sql.functions import *
 import duckdb
@@ -24,13 +26,7 @@ def generate_test_data_pyspark(base_path, name, current_path, input_path, delete
 
     try:
         ## SPARK SESSION
-        builder = SparkSession.builder.appName("MyApp") \
-            .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
-            .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
-            .config("spark.driver.memory", "8g") \
-            .config('spark.driver.host','127.0.0.1')
-
-        spark = configure_spark_with_delta_pip(builder).getOrCreate()
+        spark = DatabricksSession.builder.serverless().profile('DEFAULT').getOrCreate()
 
         ## CONFIG
         delta_table_path = base_path + '/' + current_path + '/delta_lake'
@@ -41,12 +37,13 @@ def generate_test_data_pyspark(base_path, name, current_path, input_path, delete
         os.makedirs(parquet_reference_path, exist_ok=True)
 
         ## DATA GENERATION
-        # df = spark.read.parquet(input_path)
-        # df.write.format("delta").mode("overwrite").save(delta_table_path)
+        df = spark.read.parquet(input_path)
+        df.write.format("delta").mode("overwrite").save(delta_table_path)
+
         if (partition_column):
-            spark.sql(f"CREATE TABLE test_table_{name} USING delta PARTITIONED BY ({partition_column}) LOCATION '{delta_table_path}' AS SELECT * FROM parquet.`{input_path}`")
+            spark.sql(f"CREATE TABLE test_table_{name} PARTITIONED BY ({partition_column}) AS SELECT * FROM tmp_parquet_df")
         else:
-            spark.sql(f"CREATE TABLE test_table_{name} USING delta LOCATION '{delta_table_path}' AS SELECT * FROM parquet.`{input_path}`")
+            spark.sql(f"CREATE TABLE test_table_{name} AS SELECT * FROM tmp_parquet_df")
 
         if mapping_mode == 'name' or mapping_mode == 'id':
             spark.sql(f"ALTER TABLE test_table_{name} SET TBLPROPERTIES ('delta.minReaderVersion' = '3', 'delta.minWriterVersion' = '7', 'delta.columnMapping.mode' = '{mapping_mode}');")
@@ -83,19 +80,11 @@ def generate_test_data_pyspark_by_queries(base_path, name, current_path, base_qu
     :return: describe what it returns
     """
 
-    full_path = base_path + '/' + current_path
-    if (os.path.isdir(full_path)):
-        return
+    full_path = 's3://duckdb-databricks-testing-2/duckdblabs_testing/main' + '/' + current_path
 
     try:
         ## SPARK SESSION
-        builder = SparkSession.builder.appName("MyApp") \
-            .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
-            .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
-            .config("spark.driver.memory", "8g") \
-            .config('spark.driver.host','127.0.0.1')
-
-        spark = configure_spark_with_delta_pip(builder).getOrCreate()
+        spark = DatabricksSession.builder.serverless().profile('DEFAULT').getOrCreate()
 
         ## CONFIG
         delta_table_path = full_path + '/delta_lake'
@@ -109,9 +98,9 @@ def generate_test_data_pyspark_by_queries(base_path, name, current_path, base_qu
 
         if mapping_mode == 'name' or mapping_mode == 'id':
             spark.sql(
-                f"CREATE TABLE {name} USING delta TBLPROPERTIES ('delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5', 'delta.columnMapping.mode' = '{mapping_mode}', 'delta.enableTypeWidening' = 'true') LOCATION '{delta_table_path}' AS {base_query};")
+                f"CREATE OR REPLACE TABLE {name} USING delta TBLPROPERTIES ('delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5', 'delta.columnMapping.mode' = '{mapping_mode}', 'delta.enableTypeWidening' = 'true') LOCATION '{delta_table_path}' AS {base_query};")
         elif mapping_mode is None:
-            spark.sql(f"CREATE TABLE {name} USING delta TBLPROPERTIES ('delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5', 'delta.enableTypeWidening' = 'true') LOCATION '{delta_table_path}' AS {base_query};")
+            spark.sql(f"CREATE OR REPLACE TABLE {name} USING delta TBLPROPERTIES ('delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5', 'delta.enableTypeWidening' = 'true') LOCATION '{delta_table_path}' AS {base_query};")
         else:
             raise f"Unknown mapping mode: {mapping_mode}"
 
