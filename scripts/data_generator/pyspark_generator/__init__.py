@@ -11,6 +11,12 @@ import shutil
 import math
 import glob
 
+CATALOG = 'duckdblabs_testing.'
+SCHEMA = 'main.'
+
+def sanitize_path(input: str):
+    return input.replace('/', '_').replace(':', '_').replace('-', '_')
+
 def generate_test_data_pyspark(base_path, name, current_path, input_path, delete_predicate = False, partition_column = None, mapping_mode = None):
     """
     generate_test_data_pyspark generates some test data using pyspark and duckdb
@@ -20,51 +26,47 @@ def generate_test_data_pyspark(base_path, name, current_path, input_path, delete
     :return: describe what it returns
     """
 
-    full_path = base_path + '/' + current_path
-    if (os.path.isdir(full_path)):
-        return
+    full_path = 's3://duckdb-databricks-testing-2/duckdblabs_testing/main' + '/' + current_path
 
     try:
         ## SPARK SESSION
         spark = DatabricksSession.builder.serverless().profile('DEFAULT').getOrCreate()
 
         ## CONFIG
-        delta_table_path = base_path + '/' + current_path + '/delta_lake'
-        parquet_reference_path = base_path + '/' + current_path + '/parquet'
-
+        delta_table_path = full_path + '/delta_lake'
         ## CREATE DIRS
         os.makedirs(delta_table_path, exist_ok=True)
-        os.makedirs(parquet_reference_path, exist_ok=True)
 
-        ## DATA GENERATION
+        original_input_path = input_path[4:]
+        input_path = 's3://duckdb-databricks-testing-2/thijs-tmp-test-data-3/' + original_input_path
+        print(input_path)
+        # DATA GENERATION
         df = spark.read.parquet(input_path)
-        df.write.format("delta").mode("overwrite").save(delta_table_path)
+
+        temp_table = f"{CATALOG}{SCHEMA}temp_{sanitize_path(original_input_path.split('.parquet')[0])}"
+        df.write.format("delta").saveAsTable(temp_table, overwrite=True)
 
         if (partition_column):
-            spark.sql(f"CREATE TABLE test_table_{name} PARTITIONED BY ({partition_column}) AS SELECT * FROM tmp_parquet_df")
+            spark.sql(f"CREATE OR REPLACE TABLE {name} USING delta LOCATION '{delta_table_path}' PARTITIONED BY ({partition_column}) AS SELECT * FROM {temp_table}")
         else:
-            spark.sql(f"CREATE TABLE test_table_{name} AS SELECT * FROM tmp_parquet_df")
+            spark.sql(f"CREATE OR REPLACE TABLE {name} USING delta LOCATION '{delta_table_path}' AS SELECT * FROM {temp_table}")
 
         if mapping_mode == 'name' or mapping_mode == 'id':
-            spark.sql(f"ALTER TABLE test_table_{name} SET TBLPROPERTIES ('delta.minReaderVersion' = '3', 'delta.minWriterVersion' = '7', 'delta.columnMapping.mode' = '{mapping_mode}');")
+            spark.sql(f"ALTER TABLE {name} SET TBLPROPERTIES ('delta.minReaderVersion' = '3', 'delta.minWriterVersion' = '7', 'delta.columnMapping.mode' = '{mapping_mode}');")
         elif mapping_mode is None:
-            spark.sql(f"ALTER TABLE test_table_{name} SET TBLPROPERTIES ('delta.minReaderVersion' = '3', 'delta.minWriterVersion' = '7');")
+            spark.sql(f"ALTER TABLE {name} SET TBLPROPERTIES ('delta.minReaderVersion' = '3', 'delta.minWriterVersion' = '7');")
         else:
             raise f"Unknown mapping mode: {mapping_mode}"
 
         ## CREATE
         ## CONFIGURE USAGE OF DELETION VECTORS
         if (delete_predicate):
-            spark.sql(f"ALTER TABLE test_table_{name} SET TBLPROPERTIES ('delta.enableDeletionVectors' = true);")
+            spark.sql(f"ALTER TABLE {name} SET TBLPROPERTIES ('delta.enableDeletionVectors' = true);")
 
         ## ADDING DELETES
         deltaTable = DeltaTable.forPath(spark, delta_table_path)
         if delete_predicate:
             deltaTable.delete(delete_predicate)
-
-        ## WRITING THE PARQUET FILES
-        df = spark.table(f'test_table_{name}')
-        df.write.parquet(parquet_reference_path, mode='overwrite')
 
     except:
         if (os.path.isdir(full_path)):
