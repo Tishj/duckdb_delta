@@ -12,6 +12,7 @@ env:
   BUILD_EXTENSION_TEST_DEPS: full # force checkout/build of httpfs
   BUILD_AZURE_SRC: extension_configuration/_deps/azure_extension_fc-src
   BUILD_HTTPFS_SRC: extension_configuration/_deps/httpfs_extension_fc-src
+  VCPKG_COMMIT_ID: 84bab45d415d22042bd0b9081aea57f362da3f35
 
 jobs:
   azurite-tests-linux:
@@ -44,7 +45,7 @@ jobs:
     - name: Setup vcpkg
       uses: lukka/run-vcpkg@v11.1
       with:
-        vcpkgGitCommitId: 84bab45d415d22042bd0b9081aea57f362da3f35
+        vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
 
     - uses: actions/setup-node@v4
 
@@ -128,7 +129,7 @@ jobs:
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11.1
         with:
-          vcpkgGitCommitId: ce613c41372b23b1f51333815feb3edd87ef8a8b
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
 
       - name: Configure OpenSSL for Rust
         run: |
@@ -215,7 +216,7 @@ jobs:
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11.1
         with:
-          vcpkgGitCommitId: ce613c41372b23b1f51333815feb3edd87ef8a8b
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
 
       - name: Configure OpenSSL for Rust
         run: |
@@ -271,7 +272,7 @@ jobs:
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11.1
         with:
-          vcpkgGitCommitId: ce613c41372b23b1f51333815feb3edd87ef8a8b
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
 
       - name: Configure OpenSSL for Rust
         run: |
