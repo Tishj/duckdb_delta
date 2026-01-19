@@ -10,8 +10,8 @@ defaults:
 env:
   BASE_BRANCH: ${{ github.base_ref || (endsWith(github.ref, '_feature') && 'feature' || 'main') }}
   BUILD_EXTENSION_TEST_DEPS: full # force checkout/build of httpfs
-  BUILD_AZURE_SRC: extension_configuration/_deps/azure_extension_fc-src
-  BUILD_HTTPFS_SRC: extension_configuration/_deps/httpfs_extension_fc-src
+  BUILD_AZURE_SRC: build/release/extension_configuration/_deps/azure_extension_fc-src
+  BUILD_HTTPFS_SRC: build/release/extension_configuration/_deps/httpfs_extension_fc-src
   VCPKG_COMMIT_ID: 84bab45d415d22042bd0b9081aea57f362da3f35
 
 jobs:
@@ -148,8 +148,8 @@ jobs:
           rm -rf data/attach_test
           mkdir -p data/attach_test
           touch data/attach_test/attach.db
-          sudo "${BUILD_HTTPFS_SRC}/scripts/install_s3_test_server.sh"
-          source "${BUILD_HTTPFS_SRC}/scripts/run_s3_test_server.sh"
+          sudo "../${BUILD_HTTPFS_SRC}/scripts/install_s3_test_server.sh"
+          source "../${BUILD_HTTPFS_SRC}/scripts/run_s3_test_server.sh"
           sleep 30
 
       - name: Write AWS credentials file
