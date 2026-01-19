@@ -9,6 +9,9 @@ defaults:
 
 env:
   BASE_BRANCH: ${{ github.base_ref || (endsWith(github.ref, '_feature') && 'feature' || 'main') }}
+  BUILD_EXTENSION_TEST_DEPS: full # force checkout/build of httpfs
+  BUILD_AZURE_SRC: extension_configuration/_deps/azure_extension_fc-src
+  BUILD_HTTPFS_SRC: extension_configuration/_deps/httpfs_extension_fc-src
 
 jobs:
   azurite-tests-linux:
@@ -22,7 +25,6 @@ jobs:
       AZURE_STORAGE_CONNECTION_STRING: 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;QueueEndpoint=http://127.0.0.1:10001/devstoreaccount1;TableEndpoint=http://127.0.0.1:10002/devstoreaccount1;'
       AZURE_STORAGE_ACCOUNT: devstoreaccount1
       ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
-      BUILD_EXTENSION_TEST_DEPS: full
 
     steps:
     - uses: actions/checkout@v4
@@ -71,9 +73,10 @@ jobs:
 
     - name: Launch & populate Azure test service
       run: |
-        azurite > azurite_log.txt 2>&1 &
+        # skipApiVersionCheck -- see https://learn.microsoft.com/en-us/rest/api/storageservices/versioning-for-the-azure-storage-services
+        azurite --skipApiVersionCheck > azurite_log.txt 2>&1 &
         sleep 10
-        ./scripts/upload_test_files_to_azurite.sh
+        "${BUILD_AZURE_SRC}/scripts/upload_test_files_to_azurite.sh"
 
     - name: Test extension
       run: |
@@ -109,7 +112,7 @@ jobs:
           cd duckdb
           git checkout ${{ matrix.duckdb_version }}
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
@@ -141,16 +144,17 @@ jobs:
         shell: bash
         run: |
           cd duckdb
-          mkdir data/attach_test
+          rm -rf data/attach_test
+          mkdir -p data/attach_test
           touch data/attach_test/attach.db
-          sudo ./scripts/install_s3_test_server.sh
-          source ./scripts/run_s3_test_server.sh
+          sudo "${BUILD_HTTPFS_SRC}/scripts/install_s3_test_server.sh"
+          source "${BUILD_HTTPFS_SRC}/scripts/run_s3_test_server.sh"
           sleep 30
 
       - name: Write AWS credentials file
         shell: bash
         run: |
-          ./scripts/create_minio_credential_file.sh
+          "${BUILD_HTTPFS_SRC}/scripts/create_minio_credential_file.sh"
 
       - name: Copy files to minio
         shell: bash
@@ -161,7 +165,7 @@ jobs:
           AWS_DEFAULT_REGION: eu-west-1
           AWS_ENDPOINT: duckdb-minio.com:9000
         run: |
-          ./scripts/upload_test_files_to_minio.sh
+          "${BUILD_HTTPFS_SRC}/scripts/upload_test_files_to_minio.sh
 
       - name: Test
         shell: bash
