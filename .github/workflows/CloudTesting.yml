@@ -17,8 +17,8 @@ jobs:
       GEN: Ninja
       DUCKDB_PLATFORM: linux_amd64
       BUILD_EXTENSION_TEST_DEPS: full
-      BUILD_AZURE_SRC: build/release/extension_configuration/_deps/azure_extension_fc-src
-      ENV_AZURE: ${{ env.BUILD_AZURE_SRC }}/scripts/env_azure
+      BUILD_AZURE_SRC: ${{ github.workspace }}/duckdb-delta/build/release/extension_configuration/_deps/azure_extension_fc-src
+      ENV_AZURE: ${{ github.workspace }}/duckdb-delta/scripts/env_azure
 
     steps:
       - name: Setup credentials
