@@ -150,8 +150,8 @@ jobs:
           rm -rf data/attach_test
           mkdir -p data/attach_test
           touch data/attach_test/attach.db
-          sudo "../${BUILD_HTTPFS_SRC}/scripts/install_s3_test_server.sh"
-          source "../${BUILD_HTTPFS_SRC}/scripts/run_s3_test_server.sh"
+          sudo "${BUILD_HTTPFS_SRC}/scripts/install_s3_test_server.sh"
+          source "${BUILD_HTTPFS_SRC}/scripts/run_s3_test_server.sh"
           sleep 30
 
       - name: Write AWS credentials file
@@ -244,6 +244,10 @@ jobs:
           GOLDEN_TABLES_PATH: data/unpacked_golden_tables
         run: |
           GENERATED_DATA_AVAILABLE=1 make test_release
+
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
 
   regression-test-benchmark-runner:
     name: Performance Regression Tests

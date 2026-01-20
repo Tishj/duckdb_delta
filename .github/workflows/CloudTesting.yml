@@ -18,7 +18,7 @@ jobs:
       DUCKDB_PLATFORM: linux_amd64
       BUILD_EXTENSION_TEST_DEPS: full
       BUILD_AZURE_SRC: ${{ github.workspace }}/build/release/_deps/azure_extension_fc-src
-      ENV_AZURE: ${{ github.workspace }}/scripts/env_azure
+      ENV_AZURE: ${{ github.workspace }}/build/release/_deps/azure_extension_fc-src/scripts/env_azure
 
     steps:
       - name: Setup credentials
