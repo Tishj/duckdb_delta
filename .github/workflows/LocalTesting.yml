@@ -67,8 +67,6 @@ jobs:
 
     # Build extension
     - name: Build extension
-      env:
-        GEN: ninja
       run: |
         make release
 
@@ -88,7 +86,11 @@ jobs:
       shell: bash
       run: |
         echo "## azurite"
-        cat azurite_log.txt
+        cat azurite_log.txt || true
+
+    - name: Setup tmate session
+      if: ${{ failure() }}
+      uses: mxschmitt/action-tmate@v3
 
   minio-tests-linux:
     name: Minio (local S3 test server) tests (Linux)
@@ -183,6 +185,10 @@ jobs:
           AWS_ENDPOINT: duckdb-minio.com:9000
         run: |
           ./build/release/test/unittest "*/test/sql/cloud/minio_local/*"
+
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
 
   generated-tests-linux:
     name: Generated Tests (Linux)
