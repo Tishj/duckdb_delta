@@ -9,6 +9,7 @@
 #include "duckdb/common/extension_type_info.hpp"
 #include "duckdb/common/types/decimal.hpp"
 #include "duckdb/main/database.hpp"
+#include "duckdb/parser/expression/columnref_expression.hpp"
 #include "duckdb/parser/parsed_data/create_scalar_function_info.hpp"
 #include "duckdb/common/exception/conversion_exception.hpp"
 #include "duckdb/parser/expression/conjunction_expression.hpp"
