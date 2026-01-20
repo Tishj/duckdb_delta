@@ -17,7 +17,7 @@ jobs:
       GEN: Ninja
       DUCKDB_PLATFORM: linux_amd64
       BUILD_EXTENSION_TEST_DEPS: full
-      BUILD_AZURE_SRC: ${{ env.PWD }}/build/release/extension_configuration/_deps/azure_extension_fc-src
+      BUILD_AZURE_SRC: build/release/extension_configuration/_deps/azure_extension_fc-src
       ENV_AZURE: ${{ env.BUILD_AZURE_SRC }}/scripts/env_azure
 
     steps:
