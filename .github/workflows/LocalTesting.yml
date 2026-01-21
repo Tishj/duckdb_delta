@@ -88,6 +88,7 @@ jobs:
         echo "## azurite"
         cat azurite_log.txt || true
 
+    # XXX: remove me
     - name: Setup tmate session
       if: ${{ failure() }}
       uses: mxschmitt/action-tmate@v3
@@ -186,6 +187,7 @@ jobs:
         run: |
           ./build/release/test/unittest "*/test/sql/cloud/minio_local/*"
 
+      # XXX: remove me
       - name: Setup tmate session
         if: ${{ failure() }}
         uses: mxschmitt/action-tmate@v3
@@ -245,6 +247,7 @@ jobs:
         run: |
           GENERATED_DATA_AVAILABLE=1 make test_release
 
+      # XXX: remove me
       - name: Setup tmate session
         if: ${{ failure() }}
         uses: mxschmitt/action-tmate@v3
@@ -334,3 +337,8 @@ jobs:
         run: |
           make bench-run-tpch-sf1
           make bench-run-tpcds-sf1
+
+      # XXX: remove me
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3

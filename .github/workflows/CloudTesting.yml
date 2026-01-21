@@ -98,3 +98,8 @@ jobs:
           DUCKDB_AZURE_PUBLIC_CONTAINER_AVAILABLE: 1
         run: |
           python3 duckdb/scripts/run_tests_one_by_one.py ./build/release/test/unittest `pwd`/test/sql/cloud/*
+
+      # XXX: remove me
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
