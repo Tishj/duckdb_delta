@@ -292,7 +292,7 @@ PhysicalOperator &DeltaCatalog::PlanInsert(ClientContext &context, PhysicalPlanG
         table_entry = op.table.Cast<DeltaTableEntry>();
     }
 
-    string delta_path =  table_entry->snapshot->GetPaths()[0].path;
+    string delta_path =  table_entry->snapshot->GetPath();
 
     // Create Copy Info
     auto info = make_uniq<CopyInfo>();
