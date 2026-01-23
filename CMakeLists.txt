@@ -158,9 +158,10 @@ ExternalProject_Add(
                     ${RUST_ENV_VARS} env
   UPDATE_COMMAND ""
   BUILD_IN_SOURCE 1
-  # Build debug build
+  # make it verbose so we see anything relevant
   BUILD_COMMAND
     ${CMAKE_COMMAND} -E env ${RUST_UNSET_ENV_VARS} ${RUST_ENV_VARS} cargo build
+    --message-format=human --verbose
     --package delta_kernel_ffi --workspace --profile=${CARGO_PROFILE} --all-features
     ${RUST_PLATFORM_PARAM}
   # Build DATs

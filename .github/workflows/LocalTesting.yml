@@ -10,7 +10,6 @@ defaults:
 env:
   BASE_BRANCH: ${{ github.base_ref || (endsWith(github.ref, '_feature') && 'feature' || 'main') }}
   BUILD_EXTENSION_TEST_DEPS: full # force checkout/build of httpfs
-  BUILD_AZURE_SRC: ${{ github.workspace }}/build/release/_deps/azure_extension_fc-src
   BUILD_HTTPFS_SRC: ${{ github.workspace }}/build/release/_deps/httpfs_extension_fc-src
   VCPKG_COMMIT_ID: 84bab45d415d22042bd0b9081aea57f362da3f35
 
@@ -75,7 +74,7 @@ jobs:
         # skipApiVersionCheck -- see https://learn.microsoft.com/en-us/rest/api/storageservices/versioning-for-the-azure-storage-services
         azurite --skipApiVersionCheck > azurite_log.txt 2>&1 &
         sleep 10
-        "${BUILD_AZURE_SRC}/scripts/upload_test_files_to_azurite.sh"
+        ./scripts/upload_test_files_to_azurite.sh
 
     - name: Test extension
       run: |
@@ -158,7 +157,7 @@ jobs:
       - name: Write AWS credentials file
         shell: bash
         run: |
-          "${BUILD_HTTPFS_SRC}/scripts/create_minio_credential_file.sh"
+          ./scripts/create_minio_credential_file.sh
 
       - name: Copy files to minio
         shell: bash
@@ -169,7 +168,7 @@ jobs:
           AWS_DEFAULT_REGION: eu-west-1
           AWS_ENDPOINT: duckdb-minio.com:9000
         run: |
-          "${BUILD_HTTPFS_SRC}/scripts/upload_test_files_to_minio.sh
+          ./scripts/upload_test_files_to_minio.sh
 
       - name: Test
         shell: bash
