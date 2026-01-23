@@ -27,6 +27,19 @@ jobs:
       ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
     steps:
+    - uses: actions/setup-node@v4
+    - name: install Azure test service
+      run: |
+        npm install -g azurite
+        sudo apt-get install -y azure-cli 
+
+    - name: Launch & populate Azure test service
+      run: |
+        # skipApiVersionCheck -- see https://learn.microsoft.com/en-us/rest/api/storageservices/versioning-for-the-azure-storage-services
+        azurite --skipApiVersionCheck > azurite_log.txt 2>&1 &
+        sleep 10
+        ./scripts/upload_test_files_to_azurite.sh
+
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
@@ -46,13 +59,6 @@ jobs:
       with:
         vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
 
-    - uses: actions/setup-node@v4
-
-    - name: install Azure test service
-      run: |
-        npm install -g azurite
-        sudo apt-get install -y azure-cli 
-
     - name: Setup Rust for manylinux (dtolnay/rust-toolchain doesn't work due to curl being old here)
       run: |
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
@@ -68,13 +74,6 @@ jobs:
     - name: Build extension
       run: |
         make release
-
-    - name: Launch & populate Azure test service
-      run: |
-        # skipApiVersionCheck -- see https://learn.microsoft.com/en-us/rest/api/storageservices/versioning-for-the-azure-storage-services
-        azurite --skipApiVersionCheck > azurite_log.txt 2>&1 &
-        sleep 10
-        ./scripts/upload_test_files_to_azurite.sh
 
     - name: Test extension
       run: |
@@ -104,45 +103,6 @@ jobs:
       BUILD_EXTENSION_TEST_DEPS: full
 
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          submodules: 'true'
-
-      - name: Checkout DuckDB to version
-        if: ${{ matrix.duckdb_version != '<submodule_version>'}}
-        run: |
-          cd duckdb
-          git checkout ${{ matrix.duckdb_version }}
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install Ninja
-        shell: bash
-        run: sudo apt-get update -y -qq && sudo apt-get install -y -qq ninja-build
-
-      - name: Setup Ccache
-        uses: hendrikmuhs/ccache-action@main
-        with:
-          key: ${{ github.job }}
-
-      - name: Setup vcpkg
-        uses: lukka/run-vcpkg@v11.1
-        with:
-          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
-
-      - name: Configure OpenSSL for Rust
-        run: |
-          echo "OPENSSL_ROOT_DIR=`pwd`/build/release/vcpkg_installed/x64-linux" >> $GITHUB_ENV
-          echo "OPENSSL_DIR=`pwd`/build/release/vcpkg_installed/x64-linux" >> $GITHUB_ENV
-          echo "OPENSSL_USE_STATIC_LIBS=true" >> $GITHUB_ENV
-
-      - name: Build
-        shell: bash
-        run: make
-
       - name: Start S3/HTTP test server
         shell: bash
         run: |
@@ -171,6 +131,45 @@ jobs:
           AWS_ENDPOINT: http://duckdb-minio.com:9000
         run: |
           ./scripts/upload_test_files_to_minio.sh
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: 'true'
+
+      - name: Checkout DuckDB to version
+        if: ${{ matrix.duckdb_version != '<submodule_version>'}}
+        run: |
+          cd duckdb
+          git checkout ${{ matrix.duckdb_version }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Ninja
+        shell: bash
+        run: sudo apt-get update -y -qq && sudo apt-get install -y -qq ninja-build
+
+      - name: Setup Ccache
+        uses: hendrikmuhs/ccache-action@main
+        with:
+          key: ${{ github.job }}
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11.1
+        with:
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
+
+      - name: Configure OpenSSL for Rust
+        run: |
+          echo "OPENSSL_ROOT_DIR=`pwd`/build/release/vcpkg_installed/x64-linux" >> $GITHUB_ENV
+          echo "OPENSSL_DIR=`pwd`/build/release/vcpkg_installed/x64-linux" >> $GITHUB_ENV
+          echo "OPENSSL_USE_STATIC_LIBS=true" >> $GITHUB_ENV
+
+      - name: Build
+        shell: bash
+        run: make
 
       - name: Test
         shell: bash
@@ -209,6 +208,13 @@ jobs:
           fetch-depth: 0
           submodules: 'true'
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Generate test data
+        run: make generate-data
+
       - name: Install
         shell: bash
         run: sudo apt-get update -y -qq && sudo apt-get install -y -qq ninja-build
@@ -217,10 +223,6 @@ jobs:
         uses: hendrikmuhs/ccache-action@main
         with:
           key: ${{ github.job }}
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
 
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11.1
@@ -236,7 +238,6 @@ jobs:
       - name: Build
         shell: bash
         run: |
-          make generate-data
           make release
           make unpack-golden-tables-release
 
@@ -274,6 +275,10 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Generate test data
+        shell: bash
+        run: make generate-data
+
       - name: Install
         shell: bash
         run: sudo apt-get update -y -qq && sudo apt-get install -y -qq ninja-build && pip install requests
@@ -303,10 +308,9 @@ jobs:
       - name: Build ${{ env.BASE_BRANCH }} branch
         shell: bash
         run: | 
-          git clone --branch ${{ env.BASE_BRANCH }} https://github.com/duckdb/duckdb_delta.git --depth=1 
-          cd duckdb_delta
-          git submodule init
-          git submodule update
+          git clone --branch ${{ env.BASE_BRANCH }} https://github.com/duckdb/duckdb-delta.git --depth=1 
+          cd duckdb-delta
+          git submodule update --init --recursive
           make
           rm -rf build/release/rust
 
@@ -318,20 +322,20 @@ jobs:
         if: always()
         shell: bash
         run: |
-          python3 ./duckdb/scripts/regression/test_runner.py --old=duckdb_delta/build/release/benchmark/benchmark_runner --new=build/release/benchmark/benchmark_runner --benchmarks=.github/regression/tpch_sf1_local.csv --verbose --threads=2 --root-dir=.
+          python3 ./duckdb/scripts/regression/test_runner.py --old=duckdb-delta/build/release/benchmark/benchmark_runner --new=build/release/benchmark/benchmark_runner --benchmarks=.github/regression/tpch_sf1_local.csv --verbose --threads=2 --root-dir=.
 
       - name: Regression Test TPC-DS
         if: always()
         shell: bash
         run: |
-          python ./duckdb/scripts/regression/test_runner.py --old=duckdb_delta/build/release/benchmark/benchmark_runner --new=build/release/benchmark/benchmark_runner --benchmarks=.github/regression/tpcds_sf1_local.csv --verbose --threads=2 --root-dir=.
+          python ./duckdb/scripts/regression/test_runner.py --old=duckdb-delta/build/release/benchmark/benchmark_runner --new=build/release/benchmark/benchmark_runner --benchmarks=.github/regression/tpcds_sf1_local.csv --verbose --threads=2 --root-dir=.
 
       # FIXME: re-enable
 #      - name: Regression Test Micro
 #        if: always()
 #        shell: bash
 #        run: |
-#          python ./duckdb/scripts/regression/test_runner.py --old=duckdb_delta/build/release/benchmark/benchmark_runner --new=build/release/benchmark/benchmark_runner --benchmarks=.github/regression/micro.csv --verbose --threads=2 --root-dir=.
+#          python ./duckdb/scripts/regression/test_runner.py --old=duckdb-delta/build/release/benchmark/benchmark_runner --new=build/release/benchmark/benchmark_runner --benchmarks=.github/regression/micro.csv --verbose --threads=2 --root-dir=.
 
       - name: Test benchmark makefile
         shell: bash
