@@ -4,4 +4,5 @@
 duckdb_extension_load(delta
     SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}
     LOAD_TESTS
+    DONT_LOAD
 )
