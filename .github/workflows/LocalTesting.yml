@@ -27,6 +27,11 @@ jobs:
       ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
     steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        submodules: 'true'
+
     - uses: actions/setup-node@v4
     - name: install Azure test service
       run: |
@@ -39,11 +44,6 @@ jobs:
         azurite --skipApiVersionCheck > azurite_log.txt 2>&1 &
         sleep 10
         ./scripts/upload_test_files_to_azurite.sh
-
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        submodules: 'true'
 
     - name: Install Ninja
       shell: bash
@@ -103,6 +103,11 @@ jobs:
       BUILD_EXTENSION_TEST_DEPS: full
 
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: 'true'
+
       - name: Start S3/HTTP test server
         shell: bash
         run: |
@@ -131,11 +136,6 @@ jobs:
           AWS_ENDPOINT: http://duckdb-minio.com:9000
         run: |
           ./scripts/upload_test_files_to_minio.sh
-
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          submodules: 'true'
 
       - name: Checkout DuckDB to version
         if: ${{ matrix.duckdb_version != '<submodule_version>'}}
