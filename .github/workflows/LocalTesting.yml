@@ -32,19 +32,6 @@ jobs:
         fetch-depth: 0
         submodules: 'true'
 
-    - uses: actions/setup-node@v4
-    - name: install Azure test service
-      run: |
-        npm install -g azurite
-        sudo apt-get install -y azure-cli 
-
-    - name: Launch & populate Azure test service
-      run: |
-        # skipApiVersionCheck -- see https://learn.microsoft.com/en-us/rest/api/storageservices/versioning-for-the-azure-storage-services
-        azurite --skipApiVersionCheck > azurite_log.txt 2>&1 &
-        sleep 10
-        ./scripts/upload_test_files_to_azurite.sh
-
     - name: Install Ninja
       shell: bash
       run: sudo apt-get update -y -qq && sudo apt-get install -y -qq ninja-build
@@ -58,6 +45,13 @@ jobs:
       uses: lukka/run-vcpkg@v11.1
       with:
         vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
+
+    - uses: actions/setup-node@v4
+
+    - name: install Azure test service
+      run: |
+        npm install -g azurite
+        sudo apt-get install -y azure-cli 
 
     - name: Setup Rust for manylinux (dtolnay/rust-toolchain doesn't work due to curl being old here)
       run: |
@@ -74,6 +68,13 @@ jobs:
     - name: Build extension
       run: |
         make release
+
+    - name: Launch & populate Azure test service
+      run: |
+        # skipApiVersionCheck -- see https://learn.microsoft.com/en-us/rest/api/storageservices/versioning-for-the-azure-storage-services
+        azurite --skipApiVersionCheck > azurite_log.txt 2>&1 &
+        sleep 10
+        ./scripts/upload_test_files_to_azurite.sh
 
     - name: Test extension
       run: |
