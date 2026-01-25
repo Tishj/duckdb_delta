@@ -33,7 +33,6 @@ jobs:
         submodules: 'true'
 
     - name: Install Ninja
-      shell: bash
       run: sudo apt-get update -y -qq && sudo apt-get install -y -qq ninja-build
 
     - name: Setup Ccache
@@ -82,7 +81,6 @@ jobs:
 
     - name: Azure test server log
       if: always()
-      shell: bash
       run: |
         echo "## azurite"
         cat azurite_log.txt || true
@@ -120,7 +118,6 @@ jobs:
           python-version: '3.12'
 
       - name: Install Ninja
-        shell: bash
         run: sudo apt-get update -y -qq && sudo apt-get install -y -qq ninja-build
 
       - name: Setup Ccache
@@ -140,33 +137,29 @@ jobs:
           echo "OPENSSL_USE_STATIC_LIBS=0" >> $GITHUB_ENV
 
       - name: Build
-        shell: bash
         run: make
 
       - name: Start S3/HTTP test server
-        shell: bash
         run: |
+          # deal with odd dpkg/apt conflict
+          sudo apt purge containerd containerd.io docker docker-cli
+          sudo apt install docker-cli
           cd duckdb
           # NOTE: fake attach.db and link docker yml to make the minio script happy
-          rm -rf data/attach_test
-          mkdir -p data/attach_test
-          touch data/attach_test/attach.db
-          # then deal with odd apt conflict
-          sudo apt purge containerd docker docker-cli
-          sudo apt install docker-cli
-          # now set it up
+          rm -rf test/test_data
+          mkdir -p test/test_data
+          touch test/test_data/attach.db
+          # finally set up minio
           ln -s ${BUILD_HTTPFS_SRC}/scripts/minio_s3.yml scripts/minio_s3.yml
           sudo "${BUILD_HTTPFS_SRC}/scripts/install_s3_test_server.sh"
           source "${BUILD_HTTPFS_SRC}/scripts/run_s3_test_server.sh"
           sleep 30
 
       - name: Write AWS credentials file
-        shell: bash
         run: |
           ./scripts/create_minio_credential_file.sh
 
       - name: Copy files to minio
-        shell: bash
         env:
           DUCKDB_MINIO_TEST_SERVER_AVAILABLE: 1
           AWS_ACCESS_KEY_ID: minio_duckdb_user
@@ -177,12 +170,10 @@ jobs:
           ./scripts/upload_test_files_to_minio.sh
 
       - name: Test
-        shell: bash
         run: |
           make test
 
       - name: Run Env tests
-        shell: bash
         env:
           DUCKDB_MINIO_TEST_SERVER_AVAILABLE: 1
           AWS_ACCESS_KEY_ID: minio_duckdb_user
@@ -221,7 +212,6 @@ jobs:
         run: make generate-data
 
       - name: Install
-        shell: bash
         run: sudo apt-get update -y -qq && sudo apt-get install -y -qq ninja-build
 
       - name: Setup Ccache
@@ -241,13 +231,11 @@ jobs:
           echo "OPENSSL_USE_STATIC_LIBS=true" >> $GITHUB_ENV
 
       - name: Build
-        shell: bash
         run: |
           make release
           make unpack-golden-tables-release
 
       - name: Test
-        shell: bash
         env:
           GENERATED_DATA_AVAILABLE: 1
           GOLDEN_TABLES_PATH: data/unpacked_golden_tables
@@ -281,11 +269,9 @@ jobs:
           python-version: '3.12'
 
       - name: Generate test data
-        shell: bash
         run: make generate-data
 
       - name: Install
-        shell: bash
         run: sudo apt-get update -y -qq && sudo apt-get install -y -qq ninja-build && pip install requests
 
       - name: Setup Ccache
@@ -305,13 +291,11 @@ jobs:
           echo "OPENSSL_USE_STATIC_LIBS=true" >> $GITHUB_ENV
 
       - name: Build current release
-        shell: bash
         run: |
           make
           rm -rf build/release/rust
 
       - name: Build ${{ env.BASE_BRANCH }} branch
-        shell: bash
         run: | 
           git clone --branch ${{ env.BASE_BRANCH }} https://github.com/duckdb/duckdb-delta.git --depth=1 
           cd duckdb-delta
@@ -320,30 +304,25 @@ jobs:
           rm -rf build/release/rust
 
       - name: Generate test data
-        shell: bash
         run: make generate-data
 
       - name: Regression Test TPC-H
         if: always()
-        shell: bash
         run: |
           python3 ./duckdb/scripts/regression/test_runner.py --old=duckdb-delta/build/release/benchmark/benchmark_runner --new=build/release/benchmark/benchmark_runner --benchmarks=.github/regression/tpch_sf1_local.csv --verbose --threads=2 --root-dir=.
 
       - name: Regression Test TPC-DS
         if: always()
-        shell: bash
         run: |
           python ./duckdb/scripts/regression/test_runner.py --old=duckdb-delta/build/release/benchmark/benchmark_runner --new=build/release/benchmark/benchmark_runner --benchmarks=.github/regression/tpcds_sf1_local.csv --verbose --threads=2 --root-dir=.
 
       # FIXME: re-enable
 #      - name: Regression Test Micro
 #        if: always()
-#        shell: bash
 #        run: |
 #          python ./duckdb/scripts/regression/test_runner.py --old=duckdb-delta/build/release/benchmark/benchmark_runner --new=build/release/benchmark/benchmark_runner --benchmarks=.github/regression/micro.csv --verbose --threads=2 --root-dir=.
 
       - name: Test benchmark makefile
-        shell: bash
         run: |
           make bench-run-tpch-sf1
           make bench-run-tpcds-sf1
