@@ -109,35 +109,6 @@ jobs:
           fetch-depth: 0
           submodules: 'true'
 
-      - name: Start S3/HTTP test server
-        shell: bash
-        run: |
-          cd duckdb
-          # NOTE: fake attach.db and link docker yml to make the minio script happy
-          rm -rf data/attach_test
-          mkdir -p data/attach_test
-          touch data/attach_test/attach.db
-          ln -s ${BUILD_HTTPFS_SRC}/scripts/minio_s3.yml scripts/minio_s3.yml
-          sudo "${BUILD_HTTPFS_SRC}/scripts/install_s3_test_server.sh"
-          source "${BUILD_HTTPFS_SRC}/scripts/run_s3_test_server.sh"
-          sleep 30
-
-      - name: Write AWS credentials file
-        shell: bash
-        run: |
-          ./scripts/create_minio_credential_file.sh
-
-      - name: Copy files to minio
-        shell: bash
-        env:
-          DUCKDB_MINIO_TEST_SERVER_AVAILABLE: 1
-          AWS_ACCESS_KEY_ID: minio_duckdb_user
-          AWS_SECRET_ACCESS_KEY: minio_duckdb_user_password
-          AWS_DEFAULT_REGION: eu-west-1
-          AWS_ENDPOINT: http://duckdb-minio.com:9000
-        run: |
-          ./scripts/upload_test_files_to_minio.sh
-
       - name: Checkout DuckDB to version
         if: ${{ matrix.duckdb_version != '<submodule_version>'}}
         run: |
@@ -171,6 +142,35 @@ jobs:
       - name: Build
         shell: bash
         run: make
+
+      - name: Start S3/HTTP test server
+        shell: bash
+        run: |
+          cd duckdb
+          # NOTE: fake attach.db and link docker yml to make the minio script happy
+          rm -rf data/attach_test
+          mkdir -p data/attach_test
+          touch data/attach_test/attach.db
+          ln -s ${BUILD_HTTPFS_SRC}/scripts/minio_s3.yml scripts/minio_s3.yml
+          sudo "${BUILD_HTTPFS_SRC}/scripts/install_s3_test_server.sh"
+          source "${BUILD_HTTPFS_SRC}/scripts/run_s3_test_server.sh"
+          sleep 30
+
+      - name: Write AWS credentials file
+        shell: bash
+        run: |
+          ./scripts/create_minio_credential_file.sh
+
+      - name: Copy files to minio
+        shell: bash
+        env:
+          DUCKDB_MINIO_TEST_SERVER_AVAILABLE: 1
+          AWS_ACCESS_KEY_ID: minio_duckdb_user
+          AWS_SECRET_ACCESS_KEY: minio_duckdb_user_password
+          AWS_DEFAULT_REGION: eu-west-1
+          AWS_ENDPOINT: http://duckdb-minio.com:9000
+        run: |
+          ./scripts/upload_test_files_to_minio.sh
 
       - name: Test
         shell: bash
