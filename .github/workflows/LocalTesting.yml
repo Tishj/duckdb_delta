@@ -137,7 +137,7 @@ jobs:
         run: |
           echo "OPENSSL_ROOT_DIR=`pwd`/build/release/vcpkg_installed/x64-linux" >> $GITHUB_ENV
           echo "OPENSSL_DIR=`pwd`/build/release/vcpkg_installed/x64-linux" >> $GITHUB_ENV
-          echo "OPENSSL_USE_STATIC_LIBS=true" >> $GITHUB_ENV
+          echo "OPENSSL_USE_STATIC_LIBS=0" >> $GITHUB_ENV
 
       - name: Build
         shell: bash
@@ -151,6 +151,10 @@ jobs:
           rm -rf data/attach_test
           mkdir -p data/attach_test
           touch data/attach_test/attach.db
+          # then deal with odd apt conflict
+          sudo apt purge containerd docker docker-cli
+          sudo apt install docker-cli
+          # now set it up
           ln -s ${BUILD_HTTPFS_SRC}/scripts/minio_s3.yml scripts/minio_s3.yml
           sudo "${BUILD_HTTPFS_SRC}/scripts/install_s3_test_server.sh"
           source "${BUILD_HTTPFS_SRC}/scripts/run_s3_test_server.sh"
