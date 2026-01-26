@@ -1,7 +1,6 @@
 {
   "dependencies": [
-    "vcpkg-cmake",
-    "openssl"
+    "vcpkg-cmake"
   ],
   "vcpkg-configuration": {
     "overlay-ports": [
