@@ -6,6 +6,9 @@ concurrency:
 defaults:
   run:
     shell: bash
+env:
+  VCPKG_COMMIT_ID: 84bab45d415d22042bd0b9081aea57f362da3f35
+
 
 jobs:
   azure-tests-linux:
@@ -17,7 +20,6 @@ jobs:
       GEN: Ninja
       DUCKDB_PLATFORM: linux_amd64
       BUILD_EXTENSION_TEST_DEPS: full
-      BUILD_AZURE_SRC: ${{ github.workspace }}/build/release/_deps/azure_extension_fc-src
       ENV_AZURE: ${{ github.workspace }}/build/release/_deps/azure_extension_fc-src/scripts/env_azure
 
     steps:
@@ -52,7 +54,11 @@ jobs:
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11.1
         with:
+<<<<<<< HEAD
           vcpkgGitCommitId: 84bab45d415d22042bd0b9081aea57f362da3f35
+=======
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
+>>>>>>> main
 
       - name: Configure OpenSSL for Rust
         run: |
@@ -98,8 +104,11 @@ jobs:
           DUCKDB_AZURE_PUBLIC_CONTAINER_AVAILABLE: 1
         run: |
           python3 duckdb/scripts/run_tests_one_by_one.py ./build/release/test/unittest `pwd`/test/sql/cloud/*
+<<<<<<< HEAD
 
       # XXX: remove me
       - name: Setup tmate session
         if: ${{ failure() }}
         uses: mxschmitt/action-tmate@v3
+=======
+>>>>>>> main

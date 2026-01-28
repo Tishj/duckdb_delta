@@ -6,10 +6,9 @@ concurrency:
 defaults:
   run:
     shell: bash
-
 env:
   BASE_BRANCH: ${{ github.base_ref || (endsWith(github.ref, '_feature') && 'feature' || 'main') }}
-  BUILD_EXTENSION_TEST_DEPS: full # force checkout/build of httpfs
+  BUILD_EXTENSION_TEST_DEPS: full # force checkout/build of httpfs in all builds
   BUILD_HTTPFS_SRC: ${{ github.workspace }}/build/release/_deps/httpfs_extension_fc-src
   VCPKG_COMMIT_ID: 84bab45d415d22042bd0b9081aea57f362da3f35
 
@@ -84,11 +83,6 @@ jobs:
       run: |
         echo "## azurite"
         cat azurite_log.txt || true
-
-    # XXX: remove me
-    - name: Setup tmate session
-      if: ${{ failure() }}
-      uses: mxschmitt/action-tmate@v3
 
   minio-tests-linux:
     name: Minio (local S3 test server) tests (Linux)
@@ -219,6 +213,10 @@ jobs:
         with:
           key: ${{ github.job }}
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11.1
         with:
@@ -257,6 +255,9 @@ jobs:
       VCPKG_BINARY_SOURCES: 'clear;http,https://vcpkg-cache.duckdb.org,read'
       VCPKG_TOOLCHAIN_PATH: ${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
       BUILD_EXTENSION_TEST_DEPS: full
+
+    # FIXME: @benfleis - disabling to unblock v1.5 progress - https://github.com/duckdblabs/duckdb-internal/issues/7233
+    if: false
 
     steps:
       - uses: actions/checkout@v4
@@ -326,8 +327,3 @@ jobs:
         run: |
           make bench-run-tpch-sf1
           make bench-run-tpcds-sf1
-
-      # XXX: remove me
-      - name: Setup tmate session
-        if: ${{ failure() }}
-        uses: mxschmitt/action-tmate@v3

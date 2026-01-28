@@ -14,8 +14,7 @@ concurrency:
 jobs:
   duckdb-stable-build:
     name: Build extension binaries
-    # XXX: temp for debugging
-    uses: benfleis/extension-ci-tools/.github/workflows/_extension_distribution.yml@tmp--debug-tests
+    uses: duckdb/extension-ci-tools/.github/workflows/_extension_distribution.yml@main
     secrets: inherit # required for writing to vcpkg binary cache
     with:
       # Main config
